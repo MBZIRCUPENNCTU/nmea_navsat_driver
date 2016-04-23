@@ -31,7 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 import math
-
 import rospy
 
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
@@ -52,20 +51,42 @@ class RosNMEADriver(object):
         self.use_RMC = rospy.get_param('~useRMC', False)
 
         self.diag_pub = rospy.Publisher('diagnostics', DiagnosticArray, queue_size=1)
-        self.diag_pub_time = rospy.get_time();
-        self.seq = 0;
-        self.invalid_cnt = 0;
+        self.diag_pub_time = rospy.get_time()
+        self.seq = 0
+        self.invalid_cnt = 0
         self.fix_type = 'invalid'
 
+        # TODO: remove.
         # epe: estimated position error
-        self.default_epe_quality0 = rospy.get_param('~epe_quality0', 1000000)
-        self.default_epe_quality1 = rospy.get_param('~epe_quality1', 4.0)
-        self.default_epe_quality2 = rospy.get_param('~epe_quality2', 0.1)
-        self.default_epe_quality4 = rospy.get_param('~epe_quality4', 0.02)
-        self.default_epe_quality5 = rospy.get_param('~epe_quality5', 4.0)
-        self.default_epe_quality9 = rospy.get_param('~epe_quality9', 3.0)
-        self.default_epe = self.default_epe_quality0
+        # self.default_epe_quality0 = rospy.get_param('~epe_quality0', 1000000)
+        # self.default_epe_quality1 = rospy.get_param('~epe_quality1', 4.0)
+        # self.default_epe_quality2 = rospy.get_param('~epe_quality2', 0.1)
+        # self.default_epe_quality4 = rospy.get_param('~epe_quality4', 0.02)
+        # self.default_epe_quality5 = rospy.get_param('~epe_quality5', 4.0)
+        # self.default_epe_quality9 = rospy.get_param('~epe_quality9', 3.0)
+        self.default_epe = 1000000
         self.using_receiver_epe = False
+
+        def set_fix_mapping(gga_quality, fix_status, epe_quality, fix_type):
+            """Configure the properties for a fix quality from user-set params or a default."""
+            user_params = rospy.get_param('~quality_map/{0}'.format(gga_quality), {})
+
+            return (
+                user_params.get('fix_status', fix_status),
+                user_params.get('epe_quality', epe_quality),
+                user_params.get('fix_type', fix_type)
+            )
+
+        # Mappings of NavSatStatus, epe (estimated position error), and fix type to
+        # NMEA GGA Fix Quality integers.
+        self.fix_mappings = {
+            0: set_fix_mapping(0, NavSatStatus.STATUS_NO_FIX, 1000000, 'no_fix'),
+            1: set_fix_mapping(1, NavSatStatus.STATUS_FIX, 4.0, 'SPS'),
+            2: set_fix_mapping(2, NavSatStatus.STATUS_SBAS_FIX, 0.1, 'DGPS'),
+            4: set_fix_mapping(4, NavSatStatus.STATUS_GBAS_FIX, 0.02, 'RTK Fix'),
+            5: set_fix_mapping(5, NavSatStatus.STATUS_GBAS_FIX, 4.0, 'RTK Float'),
+            9: set_fix_mapping(9, NavSatStatus.STATUS_GBAS_FIX, 3.0, 'WAAS')
+        }
 
     # Returns True if we successfully did something with the passed in
     # nmea_string
@@ -101,37 +122,51 @@ class RosNMEADriver(object):
                 NavSatFix.COVARIANCE_TYPE_APPROXIMATED
             data = parsed_sentence['GGA']
             gps_qual = data['fix_type']
-            if gps_qual == 0:       # No fix, reset covariance
-                current_fix.status.status = NavSatStatus.STATUS_NO_FIX
-                self.default_epe = self.default_epe_quality0
-                current_fix.position_covariance_type = \
-                    NavSatFix.COVARIANCE_TYPE_UNKNOWN
-                self.using_receiver_epe = False
-                self.invalid_cnt = self.invalid_cnt + 1
-                self.fix_type = 'invalid'
-            elif gps_qual == 1:     # SPS
-                current_fix.status.status = NavSatStatus.STATUS_FIX
-                self.default_epe = self.default_epe_quality1
-                self.fix_type = 'SPS'
-            elif gps_qual == 2:     # DGPS
-                current_fix.status.status = NavSatStatus.STATUS_SBAS_FIX
-                self.default_epe = self.default_epe_quality2
-                self.fix_type = 'DGPS'
-            elif gps_qual == 4:     # RTK Fixed
-                current_fix.status.status = NavSatStatus.STATUS_GBAS_FIX
-                self.default_epe = self.default_epe_quality4
-                self.fix_type = 'RTK Fix'
-            elif gps_qual == 5:     # RTK Float
-                current_fix.status.status = NavSatStatus.STATUS_GBAS_FIX
-                self.default_epe = self.default_epe_quality5
-                self.fix_type = 'RTK Float'
-            elif gps_qual == 9:     # WAAS
-                current_fix.status.status = NavSatStatus.STATUS_GBAS_FIX
-                self.default_epe = self.default_epe_quality9
-                self.fix_type = 'WAAS'
-            else:
+
+            try:
+                # Unpack the fix params for this quality value
+                current_fix.status.status, self.default_epe, self.fix_type = self.fix_mappings[gps_qual]
+                self.using_receiver_epe = True  # TODO  Do we set this?
+            except KeyError:
                 current_fix.status.status = NavSatStatus.STATUS_NO_FIX
                 self.fix_type = 'Unknown'
+
+            if gps_qual == 0:
+                current_fix.position_covariance_type = NavSatFix.COVARIANCE_TYPE_UNKNOWN
+                self.using_receiver_epe = False
+                self.invalid_cnt += 1
+
+            # if gps_qual == 0:       # No fix, reset covariance
+            #     current_fix.status.status = NavSatStatus.STATUS_NO_FIX
+            #     self.default_epe = self.default_epe_quality0
+            #     current_fix.position_covariance_type = \
+            #         NavSatFix.COVARIANCE_TYPE_UNKNOWN
+            #     self.using_receiver_epe = False
+            #     self.invalid_cnt = self.invalid_cnt + 1
+            #     self.fix_type = 'invalid'
+            # elif gps_qual == 1:     # SPS
+            #     current_fix.status.status = NavSatStatus.STATUS_FIX
+            #     self.default_epe = self.default_epe_quality1
+            #     self.fix_type = 'SPS'
+            # elif gps_qual == 2:     # DGPS
+            #     current_fix.status.status = NavSatStatus.STATUS_SBAS_FIX
+            #     self.default_epe = self.default_epe_quality2
+            #     self.fix_type = 'DGPS'
+            # elif gps_qual == 4:     # RTK Fixed
+            #     current_fix.status.status = NavSatStatus.STATUS_GBAS_FIX
+            #     self.default_epe = self.default_epe_quality4
+            #     self.fix_type = 'RTK Fix'
+            # elif gps_qual == 5:     # RTK Float
+            #     current_fix.status.status = NavSatStatus.STATUS_GBAS_FIX
+            #     self.default_epe = self.default_epe_quality5
+            #     self.fix_type = 'RTK Float'
+            # elif gps_qual == 9:     # WAAS
+            #     current_fix.status.status = NavSatStatus.STATUS_GBAS_FIX
+            #     self.default_epe = self.default_epe_quality9
+            #     self.fix_type = 'WAAS'
+            # else:
+            #     current_fix.status.status = NavSatStatus.STATUS_NO_FIX
+            #     self.fix_type = 'Unknown'
 
             current_fix.status.service = NavSatStatus.SERVICE_GPS
 
@@ -170,7 +205,7 @@ class RosNMEADriver(object):
                 current_time_ref.time_ref = rospy.Time.from_sec(data['utc_time'])
                 self.time_ref_pub.publish(current_time_ref)
 
-            if (self.diag_pub_time < rospy.get_time()) :
+            if (self.diag_pub_time < rospy.get_time()):
                 self.diag_pub_time += 1
                 diag_arr = DiagnosticArray()
                 diag_arr.header.stamp = rospy.get_rostime()
