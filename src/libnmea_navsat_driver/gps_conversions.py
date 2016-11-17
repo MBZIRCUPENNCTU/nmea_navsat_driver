@@ -195,11 +195,11 @@ def LLtoUTM(Lat, Long):
 	    (15*eccSquared*eccSquared/256 + 45*eccSquared*eccSquared*eccSquared/1024)*math.sin(4*LatRad) - \
 	    (35*eccSquared*eccSquared*eccSquared/3072)*math.sin(6*LatRad))
 
-    UTMEasting = double(k0*N*(A+(1-T+C)*A*A*A/6 +\
+    UTMEasting = float(k0*N*(A+(1-T+C)*A*A*A/6 +\
 		    (5-18*T+T*T+72*C-58*eccPrimeSquared)*A*A*A*A*A/120) + \
 		    500000.0)
 
-    UTMNorthing = double(k0*(M+N*math.tan(LatRad)*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24 + \
+    UTMNorthing = float(k0*(M+N*math.tan(LatRad)*(A*A/2+(5-T+9*C+4*C*C)*A*A*A*A/24 + \
 		    (61-58*T+T*T+600*C-330*eccPrimeSquared)*A*A*A*A*A*A/720)))
     if(Lat < 0):
         UTMNorthing += 10000000.0  # 10000000 meter offset for southern hemisphere

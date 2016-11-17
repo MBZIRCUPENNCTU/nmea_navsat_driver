@@ -1,0 +1,14 @@
+<launch>
+   <node pkg="nmea_navsat_driver" type="nmea_topic_serial_reader" name="nmea_topic_serial_reader">
+     <param name="baud" value="115200" />
+     <param name="port" value="/dev/ttyUSB0"/>
+     <remap from="nmea_sentence" to="~/mmea_sentence"/>
+   </node>
+
+   <node pkg="nmea_navsat_driver" type="nmea_topic_driver" name="nmea_topic_driver" >
+     <remap from="nmea_sentece" to="/nmea_topic_serial_reader/nmea_sentence"/>
+     <remap from="global" to="~/global"/>
+     <remap from="vel" to="~/vel"/>
+     <remap from="local" to="~/local"/>
+   </node>
+</launch>

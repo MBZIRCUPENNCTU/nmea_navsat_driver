@@ -34,13 +34,14 @@
 
 import rospy
 
-from nmea_msgs.msg import Sentence
+from std_msgs.msg import String
 
 import libnmea_navsat_driver.driver
 
 def nmea_sentence_callback(nmea_sentence, driver):
     try:
-        driver.add_sentence(nmea_sentence.sentence, frame_id=nmea_sentence.header.frame_id, timestamp=nmea_sentence.header.stamp)
+        rospy.logdebug("Received msg: %s" %nmea_sentence.data)
+        driver.add_sentence(nmea_sentence.data, frame_id=libnmea_navsat_driver.driver.RosNMEADriver.get_frame_id())
     except ValueError as e:
         rospy.logwarn("Value error, likely due to missing fields in the NMEA message. Error was: %s. Please report this issue at github.com/ros-drivers/nmea_navsat_driver, including a bag file with the NMEA sentences that caused it." % e)
 
@@ -49,7 +50,7 @@ if __name__ == '__main__':
 
     driver = libnmea_navsat_driver.driver.RosNMEADriver()
 
-    rospy.Subscriber("nmea_sentence", Sentence, nmea_sentence_callback,
+    rospy.Subscriber("nmea_sentence", String, nmea_sentence_callback,
             driver)
 
     rospy.spin()

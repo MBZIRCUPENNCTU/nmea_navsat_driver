@@ -1,0 +1,14 @@
+<launch>
+   <node pkg="nmea_navsat_driver" type="nmea_file_reader" name="nmea_file_reader">
+     <param name="delay" value="0.5" />
+     <param name="filename" value="$(find nmea_navsat_driver)/file/5.txt"/>
+     <remap from="nmea_sentence" to="~/nmea_sentence"/>
+   </node>
+
+   <node pkg="nmea_navsat_driver" type="nmea_topic_driver" name="nmea_topic_driver" output="screen">
+     <remap from="nmea_sentence" to="/nmea_file_reader/nmea_sentence"/>
+     <remap from="global" to="~/global"/>
+     <remap from="local" to="~/local"/>
+     <remap from="vel" to="~/vel"/>
+   </node>
+</launch>

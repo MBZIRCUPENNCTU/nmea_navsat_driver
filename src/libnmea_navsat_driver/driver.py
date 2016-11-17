@@ -36,16 +36,17 @@ import rospy
 
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from sensor_msgs.msg import NavSatFix, NavSatStatus, TimeReference
-from geometry_msgs.msg import TwistStamped
+from geometry_msgs.msg import TwistStamped, PoseWithCovarianceStamped
 
 from libnmea_navsat_driver.checksum_utils import check_nmea_checksum
 import libnmea_navsat_driver.parser
-
+from libnmea_navsat_driver.gps_conversions import LLtoUTM
 
 class RosNMEADriver(object):
     def __init__(self):
-        self.fix_pub = rospy.Publisher('fix', NavSatFix, queue_size=1)
+        self.fix_pub = rospy.Publisher('global', NavSatFix, queue_size=1)
         self.vel_pub = rospy.Publisher('vel', TwistStamped, queue_size=1)
+        self.pose_pub = rospy.Publisher('local', PoseWithCovarianceStamped, queue_size=1)
         self.time_ref_pub = rospy.Publisher('time_reference', TimeReference, queue_size=1)
 
         self.time_ref_source = rospy.get_param('~time_ref_source', None)
@@ -108,12 +109,19 @@ class RosNMEADriver(object):
             current_time = timestamp
         else:
             current_time = rospy.get_rostime()
+
         current_fix = NavSatFix()
         current_fix.header.stamp = current_time
         current_fix.header.frame_id = frame_id
+        
+        current_pose_utm = PoseWithCovarianceStamped()
+        current_pose_utm.header.stamp = current_time
+        current_pose_utm.header.frame_id = frame_id
+
         current_time_ref = TimeReference()
         current_time_ref.header.stamp = current_time
         current_time_ref.header.frame_id = frame_id
+        
         if self.time_ref_source:
             current_time_ref.source = self.time_ref_source
         else:
@@ -169,6 +177,40 @@ class RosNMEADriver(object):
             current_fix.altitude = altitude
 
             self.fix_pub.publish(current_fix)
+
+            current_pose_utm.pose.pose.position.x = float('NaN')
+            current_pose_utm.pose.pose.position.y = float('NaN')
+            current_pose_utm.pose.pose.position.z = float('NaN')
+
+            # Set orientation to 0; GPS doesn't provide orientation
+            current_pose_utm.pose.pose.orientation.x = 0.0
+            current_pose_utm.pose.pose.orientation.y = 0.0
+            current_pose_utm.pose.pose.orientation.z = 0.0
+            current_pose_utm.pose.pose.orientation.w = 0.0
+            
+            # Default position is unknown
+            current_pose_utm.pose.covariance[0] = 1e03
+            current_pose_utm.pose.covariance[7] = 1e03
+            current_pose_utm.pose.covariance[14] = 1e03
+
+            # Default angular pose is unknown
+            current_pose_utm.pose.covariance[21] = 1e03
+            current_pose_utm.pose.covariance[28] = 1e03
+            current_pose_utm.pose.covariance[35] = 1e03
+            
+            if not math.isnan(latitude) or not math.isnan(longitude):
+                UTMNorthing, UTMEasting = LLtoUTM(latitude, longitude)[0:2]
+                current_pose_utm.pose.pose.position.x = UTMEasting
+                current_pose_utm.pose.pose.position.y = UTMNorthing
+                current_pose_utm.pose.pose.position.z = altitude
+                
+                # Pose x/y/z covariance is whatever we decided h & v covariance is. 
+                # Here is it the same as for ECEF coordinates
+                current_pose_utm.pose.covariance[0] = (hdop * self.lon_std_dev) ** 2
+                current_pose_utm.pose.covariance[7] = (hdop * self.lat_std_dev) ** 2
+                current_pose_utm.pose.covariance[14] = (hdop * self.alt_std_dev) ** 2
+                
+            self.pose_pub.publish(current_pose_utm)
 
             if not math.isnan(data['utc_time']):
                 current_time_ref.time_ref = rospy.Time.from_sec(data['utc_time'])

@@ -32,7 +32,9 @@
 # ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 
-import serial
+
+import os
+import sys
 
 import rospy
 
@@ -42,20 +44,25 @@ if __name__ == '__main__':
     rospy.init_node('nmea_topic_serial_reader')
 
     nmea_pub = rospy.Publisher("nmea_sentence", String, queue_size=1)
-
-    serial_port = rospy.get_param('~port','/dev/ttyUSB0')
-    serial_baud = rospy.get_param('~baud',115200)
+    filename = rospy.get_param('~filename','')
+    delay = rospy.get_param('~delay',1)
+    d = rospy.Duration(delay, 0)
 
     try:
-        GPS = serial.Serial(port=serial_port, baudrate=serial_baud, timeout=2)
-        while not rospy.is_shutdown():
-            data = GPS.readline().strip()
+        if not os.path.isfile(filename):
+	    rospy.logerr("File '%s' does not exist" %filename)
+	    sys.exit(0)
+        
+	with open(filename) as f:
+	    for line in f:
+	        data = line.strip()
+		
+		if not rospy.is_shutdown():
+		    string = String() 								
+        	    string.data = data
+		    nmea_pub.publish(string)
 
-            sentence = String()
-            sentence.data = data
-            
-            nmea_pub.publish(sentence)
-            rospy.logdebug("Publishing msg: %s" %data)
-
+                    rospy.logdebug("Publishing msg: %s" %data)
+                    rospy.sleep(d)
     except rospy.ROSInterruptException:
-        GPS.close() #Close GPS serial port
+        print("error")
