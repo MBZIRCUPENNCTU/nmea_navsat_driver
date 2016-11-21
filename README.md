@@ -15,19 +15,20 @@ freset
 ```
 
 ##### To get Basestation fix position from averaging:
-1. Use commands
-    ```
-    fix none
-    interfacemode com1 automatic automatic on
-    log com1 gpgga ontime 0.1
-    saveconfig
-    ```
-2. Run position averaging in Tersus GNSS center and copy it [lat, lon, alt].
-3. Use commands
-    ```
-    unlog com1 gpgga
-    saveconfig
-    ```
+* Use commands
+```
+fix none
+interfacemode com1 automatic automatic on
+log com1 gpgga ontime 0.1
+saveconfig
+```
+
+* Run position averaging in Tersus GNSS center and copy it [lat, lon, alt].
+* Use commands
+```
+unlog com1 gpgga
+saveconfig
+```
 
 ##### BASESTATION corrections output
 ```
