@@ -177,32 +177,20 @@ class RosNMEADriver(object):
             current_fix.altitude = altitude
 
             self.fix_pub.publish(current_fix)
-
-            current_pose_utm.pose.pose.position.x = float('NaN')
-            current_pose_utm.pose.pose.position.y = float('NaN')
-            current_pose_utm.pose.pose.position.z = float('NaN')
-
-            # Set orientation to 0; GPS doesn't provide orientation
-            current_pose_utm.pose.pose.orientation.x = 0.0
-            current_pose_utm.pose.pose.orientation.y = 0.0
-            current_pose_utm.pose.pose.orientation.z = 0.0
-            current_pose_utm.pose.pose.orientation.w = 0.0
-            
-            # Default position is unknown
-            current_pose_utm.pose.covariance[0] = 1e03
-            current_pose_utm.pose.covariance[7] = 1e03
-            current_pose_utm.pose.covariance[14] = 1e03
-
-            # Default angular pose is unknown
-            current_pose_utm.pose.covariance[21] = 1e03
-            current_pose_utm.pose.covariance[28] = 1e03
-            current_pose_utm.pose.covariance[35] = 1e03
             
             if not math.isnan(latitude) or not math.isnan(longitude):
+                
                 UTMNorthing, UTMEasting = LLtoUTM(latitude, longitude)[0:2]
+                
                 current_pose_utm.pose.pose.position.x = UTMEasting
                 current_pose_utm.pose.pose.position.y = UTMNorthing
                 current_pose_utm.pose.pose.position.z = altitude
+            
+                # Set orientation to 0; GPS doesn't provide orientation
+                current_pose_utm.pose.pose.orientation.x = 0.0
+                current_pose_utm.pose.pose.orientation.y = 0.0
+                current_pose_utm.pose.pose.orientation.z = 0.0
+                current_pose_utm.pose.pose.orientation.w = 0.0
                 
                 # Pose x/y/z covariance is whatever we decided h & v covariance is. 
                 # Here is it the same as for ECEF coordinates
@@ -210,7 +198,12 @@ class RosNMEADriver(object):
                 current_pose_utm.pose.covariance[7] = (hdop * self.lat_std_dev) ** 2
                 current_pose_utm.pose.covariance[14] = (hdop * self.alt_std_dev) ** 2
                 
-            self.pose_pub.publish(current_pose_utm)
+                # Default angular pose is unknown
+                current_pose_utm.pose.covariance[21] = 1e03
+                current_pose_utm.pose.covariance[28] = 1e03
+                current_pose_utm.pose.covariance[35] = 1e03
+            
+                self.pose_pub.publish(current_pose_utm)
 
             if not math.isnan(data['utc_time']):
                 current_time_ref.time_ref = rospy.Time.from_sec(data['utc_time'])
