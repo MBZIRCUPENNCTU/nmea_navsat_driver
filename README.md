@@ -10,7 +10,6 @@ Download [Tersus Software Center] (http://www.tersus-gnss.com/pages/document-sof
 
 #### BASESTATION setting
 ##### factory reset:
-1. Use commands
 ```
 freset
 ```
@@ -31,7 +30,6 @@ saveconfig
 ```
 
 ##### BASESTATION corrections output
-1. Use commands
 ```
 fix position lat lon alt
 ecutoff bd2 15.0
@@ -46,7 +44,6 @@ saveconfig
 ```
 
 ##### BASESTATION additional output for diagnostics
-1. Use commands 
 ```
 interfacemode com1 automatic automatic on
 log com1 gpgga ontime 1
@@ -56,13 +53,11 @@ saveconfig
 
 #### ROVER setting
 ##### factory reset:
-1. Use commands
 ```
 freset
 ```
 
 ##### ROVER basic setup
-1. Use commands
 ```
 fix none      
 interfacemode com2 automatic automatic on
@@ -72,6 +67,6 @@ saveconfig
 ```
 
 ##### For different rate of msgs
-ontime 0.05 - 20Hz
-ontime 0.1 - 10Hz
-ontime 1 - 1 Hz
+* ontime 0.05 - 20Hz
+* ontime 0.1 - 10Hz
+* ontime 1 - 1 Hz
