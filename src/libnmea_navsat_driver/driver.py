@@ -44,10 +44,10 @@ from libnmea_navsat_driver.gps_conversions import LLtoUTM
 
 class RosNMEADriver(object):
     def __init__(self):
-        self.fix_pub = rospy.Publisher('global', NavSatFix, queue_size=1)
-        self.vel_pub = rospy.Publisher('vel', TwistStamped, queue_size=1)
-        self.pose_pub = rospy.Publisher('local', PoseWithCovarianceStamped, queue_size=1)
-        self.time_ref_pub = rospy.Publisher('time_reference', TimeReference, queue_size=1)
+        self.fix_pub = rospy.Publisher('~global', NavSatFix, queue_size=1)
+        self.vel_pub = rospy.Publisher('~vel', TwistStamped, queue_size=1)
+        self.pose_pub = rospy.Publisher('~local', PoseWithCovarianceStamped, queue_size=1)
+        self.time_ref_pub = rospy.Publisher('~time_reference', TimeReference, queue_size=1)
 
         self.time_ref_source = rospy.get_param('~time_ref_source', None)
         self.use_RMC = rospy.get_param('~useRMC', False)

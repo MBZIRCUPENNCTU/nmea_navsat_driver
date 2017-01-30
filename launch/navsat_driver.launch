@@ -1,9 +1,25 @@
 <launch>
-   <node pkg="nmea_navsat_driver" type="nmea_serial_driver" name="nmea_serial_driver">
-     <param name="baud" value="115200"/>
-     <param name="port" value="/dev/ttyUSB0"/>
-     <remap from="global" to="~/global"/>
-     <remap from="vel" to="~/vel"/>
-     <remap from="local" to="~/local"/>
-   </node>
+
+  <arg name="uav_name" default="$(optenv UAV_NAME uav)"/>
+
+  <group ns="$(arg uav_name)">
+
+    <node pkg="nmea_navsat_driver" type="nmea_serial_driver" name="nmea_serial_driver">
+
+      <!-- parameters -->
+      <param name="baud" value="115200"/>
+      <param name="port" value="/dev/ttyUSB0"/>
+      <param name="~useRMC" value="False"/>
+      <param name="~time_ref_source" value="False"/>
+      <param name="~frame_id" value="fcu"/>
+
+      <!-- Publishers -->
+      <remap from="~global" to="~global"/>
+      <remap from="~vel" to="~vel"/>
+      <remap from="~local" to="~local"/>
+      <remap from="~time_reference" to="~time_reference"/>
+
+    </node>
+
+  </group>
 </launch>
