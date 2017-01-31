@@ -8,7 +8,7 @@
 
       <!-- parameters -->
       <param name="baud" value="115200"/>
-      <param name="port" value="/dev/ttyUSB0"/>
+      <param name="port" value="/dev/rtk"/>
       <param name="~useRMC" value="False"/>
       <param name="~time_ref_source" value="False"/>
       <param name="~frame_id" value="fcu"/>
