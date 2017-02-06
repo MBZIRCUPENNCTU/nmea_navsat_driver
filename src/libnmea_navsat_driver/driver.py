@@ -178,7 +178,7 @@ class RosNMEADriver(object):
 
             self.fix_pub.publish(current_fix)
             
-            if not math.isnan(latitude) and not math.isnan(longitude): # and gps_qual==4:
+            if not math.isnan(latitude) and not math.isnan(longitude) and gps_qual > 0:
                 
                 UTMNorthing, UTMEasting = LLtoUTM(latitude, longitude)[0:2]
                 
