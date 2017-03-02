@@ -53,7 +53,7 @@ class RosNMEADriver(object):
         self.time_ref_source = rospy.get_param('~time_ref_source', None)
         self.use_RMC = rospy.get_param('~useRMC', False)
 
-        self.diag_pub = rospy.Publisher('diagnostics', DiagnosticArray, queue_size=1)
+        self.diag_pub = rospy.Publisher('~diagnostics', DiagnosticArray, queue_size=1)
         self.diag_pub_time = rospy.get_time()
         self.seq = 0
         self.invalid_cnt = 0
