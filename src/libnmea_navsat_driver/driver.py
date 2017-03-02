@@ -37,7 +37,7 @@ import rospy
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from sensor_msgs.msg import NavSatFix, NavSatStatus, TimeReference
 from geometry_msgs.msg import TwistStamped, PoseWithCovarianceStamped
-from libnmea_navsat_driver.msg import GpsLocal
+from nmea_navsat_driver.msg import GpsLocal
 
 from libnmea_navsat_driver.checksum_utils import check_nmea_checksum
 import libnmea_navsat_driver.parser
