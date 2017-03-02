@@ -179,7 +179,7 @@ class RosNMEADriver(object):
 
             self.fix_pub.publish(current_fix)
             
-            if not math.isnan(latitude) and not math.isnan(longitude) and gps_qual > 0:
+            if not math.isnan(latitude) and not math.isnan(longitude) and (gps_qual == 5 or gps_qual ==4 ):
                 
                 UTMNorthing, UTMEasting = LLtoUTM(latitude, longitude)[0:2]
                 
@@ -193,7 +193,7 @@ class RosNMEADriver(object):
                 current_pose_utm.covariance[4] = (hdop * self.lat_std_dev) ** 2
                 current_pose_utm.covariance[8] = (hdop * self.alt_std_dev) ** 2
                 
-                current_pose_utm.status = current_fix.status
+                current_pose_utm.gps_status = current_fix.status.status
 
                 self.local_pub.publish(current_pose_utm)
 
