@@ -193,7 +193,7 @@ class RosNMEADriver(object):
                 current_pose_utm.covariance[4] = (hdop * self.lat_std_dev) ** 2
                 current_pose_utm.covariance[8] = (hdop * self.alt_std_dev) ** 2
                 
-                current_pose_utm.gps_status = current_fix.status.status
+                current_pose_utm.gps_status = gps_qual
 
                 self.local_pub.publish(current_pose_utm)
 
