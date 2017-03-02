@@ -37,6 +37,7 @@ import rospy
 from diagnostic_msgs.msg import DiagnosticArray, DiagnosticStatus, KeyValue
 from sensor_msgs.msg import NavSatFix, NavSatStatus, TimeReference
 from geometry_msgs.msg import TwistStamped, PoseWithCovarianceStamped
+from libnmea_navsat_driver.msg import GpsLocal
 
 from libnmea_navsat_driver.checksum_utils import check_nmea_checksum
 import libnmea_navsat_driver.parser
@@ -46,7 +47,7 @@ class RosNMEADriver(object):
     def __init__(self):
         self.fix_pub = rospy.Publisher('~global', NavSatFix, queue_size=1)
         self.vel_pub = rospy.Publisher('~vel', TwistStamped, queue_size=1)
-        self.pose_pub = rospy.Publisher('~local', PoseWithCovarianceStamped, queue_size=1)
+        self.local_pub = rospy.Publisher('~local', GpsLocal, queue_size=1)
         self.time_ref_pub = rospy.Publisher('~time_reference', TimeReference, queue_size=1)
 
         self.time_ref_source = rospy.get_param('~time_ref_source', None)
@@ -114,7 +115,7 @@ class RosNMEADriver(object):
         current_fix.header.stamp = current_time
         current_fix.header.frame_id = frame_id
         
-        current_pose_utm = PoseWithCovarianceStamped()
+        current_pose_utm = GpsLocal()
         current_pose_utm.header.stamp = current_time
         current_pose_utm.header.frame_id = frame_id
 
@@ -182,28 +183,19 @@ class RosNMEADriver(object):
                 
                 UTMNorthing, UTMEasting = LLtoUTM(latitude, longitude)[0:2]
                 
-                current_pose_utm.pose.pose.position.x = UTMEasting
-                current_pose_utm.pose.pose.position.y = UTMNorthing
-                current_pose_utm.pose.pose.position.z = altitude
+                current_pose_utm.position.x = UTMEasting
+                current_pose_utm.position.y = UTMNorthing
+                current_pose_utm.position.z = altitude
             
-                # Set orientation to 0; GPS doesn't provide orientation
-                current_pose_utm.pose.pose.orientation.x = 0.0
-                current_pose_utm.pose.pose.orientation.y = 0.0
-                current_pose_utm.pose.pose.orientation.z = 0.0
-                current_pose_utm.pose.pose.orientation.w = 0.0
-                
                 # Pose x/y/z covariance is whatever we decided h & v covariance is. 
                 # Here is it the same as for ECEF coordinates
-                current_pose_utm.pose.covariance[0] = (hdop * self.lon_std_dev) ** 2
-                current_pose_utm.pose.covariance[7] = (hdop * self.lat_std_dev) ** 2
-                current_pose_utm.pose.covariance[14] = (hdop * self.alt_std_dev) ** 2
+                current_pose_utm.covariance[0] = (hdop * self.lon_std_dev) ** 2
+                current_pose_utm.covariance[4] = (hdop * self.lat_std_dev) ** 2
+                current_pose_utm.covariance[8] = (hdop * self.alt_std_dev) ** 2
                 
-                # Default angular pose is unknown
-                current_pose_utm.pose.covariance[21] = 1e03
-                current_pose_utm.pose.covariance[28] = 1e03
-                current_pose_utm.pose.covariance[35] = 1e03
-            
-                self.pose_pub.publish(current_pose_utm)
+                current_pose_utm.status = current_fix.status
+
+                self.local_pub.publish(current_pose_utm)
 
             if not math.isnan(data['utc_time']):
                 current_time_ref.time_ref = rospy.Time.from_sec(data['utc_time'])
